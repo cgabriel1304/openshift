@@ -1,0 +1,42 @@
+---
+# you need to create the ImageStream as the BuildConfig doesn't do it automatically
+apiVersion: v1
+kind: ImageStream
+metadata:
+    name: php-custom
+
+---
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: php-custom
+spec:
+  # output to an ImageStream in your project
+  output:
+    to:
+      kind: ImageStreamTag
+      name: php-custom:7.0
+  # Repo which contains the Dockerfile and any other requirements for it
+  source:
+    git:
+      uri: https://gist.github.com/johnsonch/3845052
+    type: Git
+  # the dockerStrategy runs a build of a Dockerfile from the specified source repository and base image
+  strategy:
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: php:7.0
+        namespace: openshift
+    type: Docker
+  # this ImageChange trigger will automatically keep your base image up to date with the original image
+  # if you are using the included OpenShift images, every time we update them this build will be run
+  # remove the trigger here or in your DeploymentConfig if you want to update the image manually
+  triggers:
+  - type: ImageChange
+    imagechange:
+      from:
+        kind: "ImageStreamTag"
+        name: "php:7.0"
+        namespace: openshift
+  resources: {}
