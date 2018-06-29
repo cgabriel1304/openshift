@@ -19,7 +19,7 @@ spec:
   # Repo which contains the Dockerfile and any other requirements for it
   source:
     git:
-      uri: https://gist.github.com/johnsonch/3845052
+      uri: https://github.com/cgabriel1304/openshift.git
     type: Git
   # the dockerStrategy runs a build of a Dockerfile from the specified source repository and base image
   strategy:
