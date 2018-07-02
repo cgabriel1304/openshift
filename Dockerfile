@@ -2,25 +2,19 @@ FROM centos/s2i-base-centos7
 
 # This image provides an Apache+PHP environment for running PHP
 # applications.
-USER 0
 
 EXPOSE 8080
 EXPOSE 8443
 
 # Description
-# This image provides an Apache 2.4 + PHP 7.1 environment for running PHP applications.
+# This image provides an Apache 2.4 + PHP 7.0 environment for running PHP applications.
 # Exposed ports:
 # * 8080 - alternative port for http
 
-ENV PHP_VERSION=7.1 \
-    PHP_VER_SHORT=71 \
+ENV PHP_VERSION=7.0 \
+    PHP_VER_SHORT=70 \
     NAME=php \
-    PATH=$PATH:/opt/rh/rh-php71/root/usr/bin
-
-RUN yum -y install cronie
-
-RUN cat /etc/crontab
-
+    PATH=$PATH:/opt/rh/rh-php70/root/usr/bin
 
 ENV SUMMARY="Platform for building and running PHP $PHP_VERSION applications" \
     DESCRIPTION="PHP $PHP_VERSION available as container is a base platform for \
@@ -48,19 +42,19 @@ LABEL summary="${SUMMARY}" \
 
 # Install Apache httpd and PHP
 RUN yum install -y centos-release-scl && \
-    INSTALL_PKGS="rh-php71 rh-php71-php rh-php71-php-mysqlnd rh-php71-php-pgsql rh-php71-php-bcmath \
-                  rh-php71-php-gd rh-php71-php-intl rh-php71-php-ldap rh-php71-php-mbstring rh-php71-php-pdo \
-                  rh-php71-php-process rh-php71-php-soap rh-php71-php-opcache rh-php71-php-xml \
-                  rh-php71-php-gmp rh-php71-php-pecl-apcu httpd24-mod_ssl" && \
+    INSTALL_PKGS="rh-php70 rh-php70-php rh-php70-php-mysqlnd rh-php70-php-pgsql rh-php70-php-bcmath \
+                  rh-php70-php-gd rh-php70-php-intl rh-php70-php-ldap rh-php70-php-mbstring rh-php70-php-pdo \
+                  rh-php70-php-process rh-php70-php-soap rh-php70-php-opcache rh-php70-php-xml \
+                  rh-php70-php-gmp httpd24-mod_ssl" && \
     yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS --nogpgcheck && \
     rpm -V $INSTALL_PKGS && \
     yum clean all -y
 
 ENV PHP_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/php/ \
     APP_DATA=${APP_ROOT}/src \
-    PHP_DEFAULT_INCLUDE_PATH=/opt/rh/rh-php71/root/usr/share/pear \
-    PHP_SYSCONF_PATH=/etc/opt/rh/rh-php71 \
-    PHP_HTTPD_CONF_FILE=rh-php71-php.conf \
+    PHP_DEFAULT_INCLUDE_PATH=/opt/rh/rh-php70/root/usr/share/pear \
+    PHP_SYSCONF_PATH=/etc/opt/rh/rh-php70 \
+    PHP_HTTPD_CONF_FILE=rh-php70-php.conf \
     HTTPD_CONFIGURATION_PATH=${APP_ROOT}/etc/conf.d \
     HTTPD_MAIN_CONF_PATH=/etc/httpd/conf \
     HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
@@ -68,19 +62,13 @@ ENV PHP_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/php/ \
     HTTPD_DATA_PATH=/var/www \
     HTTPD_DATA_ORIG_PATH=/opt/rh/httpd24/root/var/www \
     HTTPD_VAR_PATH=/opt/rh/httpd24/root/var \
-    SCL_ENABLED=rh-php71
-
-RUN yum -y install cronie
-
-RUN cat /etc/crontab
-
+    SCL_ENABLED=rh-php70
 
 # Copy the S2I scripts from the specific language image to $STI_SCRIPTS_PATH
 COPY ./s2i/bin/ $STI_SCRIPTS_PATH
 
 # Copy extra files to the image.
 COPY ./root/ /
-
 
 USER 1001
 

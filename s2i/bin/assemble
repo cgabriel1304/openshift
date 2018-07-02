@@ -2,6 +2,8 @@
 
 set -e
 
+source ${PHP_CONTAINER_SCRIPTS_PATH}/common.sh
+
 shopt -s dotglob
 echo "---> Installing application source..."
 mv /tmp/src/* ./
@@ -13,8 +15,13 @@ if [ -f composer.json ]; then
   TEMPFILE=$(mktemp)
   RETRIES=6
   for ((i=0; i<$RETRIES; i++)); do
-    echo "Downloading https://getcomposer.org/installer, attempt $((i+1))/$RETRIES"
-    curl -o $TEMPFILE https://getcomposer.org/installer && break
+
+    if [ -z "$COMPOSER_INSTALLER" ]; then
+      export COMPOSER_INSTALLER="https://getcomposer.org/installer"
+    fi
+
+    echo "Downloading $COMPOSER_INSTALLER, attempt $((i+1))/$RETRIES"
+    curl -o $TEMPFILE $COMPOSER_INSTALLER && break
     sleep 10
   done
   if [[ $i == $RETRIES ]]; then
@@ -23,18 +30,27 @@ if [ -f composer.json ]; then
   fi
   php <$TEMPFILE
 
+  if [ "$(ls -a /tmp/artifacts/ 2>/dev/null)" ]; then
+    echo "Restoring build artifacts"
+    mv /tmp/artifacts/* $HOME/
+  fi
+
   # Change the repo mirror if provided
   if [ -n "$COMPOSER_MIRROR" ]; then
     ./composer.phar config -g repositories.packagist composer $COMPOSER_MIRROR
   fi
 
   # Install App dependencies using Composer
-  ./composer.phar install --no-interaction --no-ansi --optimize-autoloader
+  ./composer.phar install --no-interaction --no-ansi --optimize-autoloader $COMPOSER_ARGS
 
   if [ ! -f composer.lock ]; then
     echo -e "\nConsider adding a 'composer.lock' file into your source repository.\n"
   fi
 fi
 
+# post-assemble files
+process_extending_files ./php-post-assemble/ ${PHP_CONTAINER_SCRIPTS_PATH}/post-assemble/
+
 # Fix source directory permissions
 fix-permissions ./
+fix-permissions ${HTTPD_CONFIGURATION_PATH}
