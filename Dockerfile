@@ -43,8 +43,11 @@ LABEL summary="${SUMMARY}" \
       maintainer="SoftwareCollections.org <sclorg@redhat.com>"
 
 # Install Apache httpd and PHP
-RUN yum install -y centos-release-scl
-RUN yum install -y rh-php70 rh-php70-php rh-php70-php-mysqlnd rh-php70-php-pgsql rh-php70-php-process rh-php70-php-soap rh-php70-php-opcache rh-php70-php-xml rh-php70-php-gmp httpd24-mod_ssl
+RUN yum install -y httpd
+RUN systemctl start httpd.service
+RUN systemctl enable httpd.service
+
+RUN yum install -y php70 rh-php70-php-pgsql rh-php70-php-process rh-php70-php-soap rh-php70-php-opcache rh-php70-php-xml rh-php70-php-gmp httpd24-mod_ssl
 
 ENV PHP_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/php/ \
     APP_DATA=${APP_ROOT}/src \
