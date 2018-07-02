@@ -47,10 +47,8 @@ RUN yum install -y centos-release-scl && \
     INSTALL_PKGS="rh-php70 rh-php70-php rh-php70-php-mysqlnd rh-php70-php-pgsql rh-php70-php-bcmath \
                   rh-php70-php-gd rh-php70-php-intl rh-php70-php-ldap rh-php70-php-mbstring rh-php70-php-pdo \
                   rh-php70-php-process rh-php70-php-soap rh-php70-php-opcache rh-php70-php-xml \
-                  rh-php70-php-gmp httpd24-mod_ssl" && \
-    yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS --nogpgcheck && \
-    rpm -V $INSTALL_PKGS && \
-    yum clean all -y
+                  rh-php70-php-gmp httpd24-mod_ssl"
+RUN yum install -y $INSTALL_PKGS
 
 ENV PHP_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/php/ \
     APP_DATA=${APP_ROOT}/src \
