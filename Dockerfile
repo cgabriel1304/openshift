@@ -68,7 +68,7 @@ COPY ./root/ /
 
 # Reset permissions of filesystem to default values
 RUN chmod +x /usr/libexec -R
-RUN /usr/libexec/container-setup && rpm-file-permissions
+# RUN /usr/libexec/container-setup && rpm-file-permissions
 
 USER 1001
 
