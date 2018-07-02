@@ -17,8 +17,8 @@ ENV PHP_VERSION=7.1 \
     NAME=php \
     PATH=$PATH:/opt/rh/rh-php71/root/usr/bin
 
-RUN yum update
-RUN yum install cronie
+RUN yum -y update
+RUN yum -y install cronie
 RUN service crond start
 
 RUN cat /etc/crontab
