@@ -43,8 +43,6 @@ LABEL summary="${SUMMARY}" \
       maintainer="SoftwareCollections.org <sclorg@redhat.com>"
 
 # Install Apache httpd and PHP
-RUN systemctl start httpd.service
-RUN systemctl enable httpd.service
 
 RUN yum install -y php70 rh-php70-php-pgsql rh-php70-php-process rh-php70-php-soap rh-php70-php-opcache rh-php70-php-xml rh-php70-php-gmp httpd24-mod_ssl
 
