@@ -43,7 +43,6 @@ LABEL summary="${SUMMARY}" \
       maintainer="SoftwareCollections.org <sclorg@redhat.com>"
 
 # Install Apache httpd and PHP
-RUN yum install -y httpd
 RUN systemctl start httpd.service
 RUN systemctl enable httpd.service
 
