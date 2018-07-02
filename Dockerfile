@@ -17,7 +17,11 @@ ENV PHP_VERSION=7.1 \
     NAME=php \
     PATH=$PATH:/opt/rh/rh-php71/root/usr/bin
 
-RUN yum install -y crontab
+RUN yum update
+RUN yum install cronie
+RUN service crond start
+
+RUN cat /etc/crontab
 
 USER 1001
 
