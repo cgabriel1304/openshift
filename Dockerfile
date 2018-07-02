@@ -2,6 +2,7 @@ FROM centos/s2i-base-centos7
 
 # This image provides an Apache+PHP environment for running PHP
 # applications.
+USER 0
 
 EXPOSE 8080
 EXPOSE 8443
