@@ -1,4 +1,4 @@
-FROM centos/s2i-base-centos7
+FROM rhscl/s2i-base-rhel7:1
 
 # This image provides an Apache+PHP environment for running PHP
 # applications.
