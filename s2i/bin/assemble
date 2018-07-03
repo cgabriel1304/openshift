@@ -51,26 +51,6 @@ fi
 # post-assemble files
 process_extending_files ./php-post-assemble/ ${PHP_CONTAINER_SCRIPTS_PATH}/post-assemble/
 
-
-### Project specific deploy commands
-php ./app/console kermit:backupToS3
-php ./app/console doctrine:migrations:migrate --no-interaction --env=prod
-#./bin/console doctrine:fixtures:load --no-interaction --env=prod
-#php ./app/console fos:user:change-password admin admin
-#./bin/console faker:populate
-rm -rf web/js/fos_js_routes.js
-php ./app/console fos:js-routing:dump
-chmod -R 777 tmp_uploaded_files
-php ./app/console assetic:dump --env=prod
-php -d memory_limit=512M ./app/console sonata:admin:setup-acl --env=prod
-
-chmod +x ./src/SSPO/ImportBundle/LinuxImportScripts/*.sh
-
-rm -rf app/cache/*
-rm -rf app/logs/*
-
 # Fix source directory permissions
 fix-permissions ./
 fix-permissions ${HTTPD_CONFIGURATION_PATH}
-
-#curl --silent ${KERMIT_APP_ROUTE}/api/switch-maintenance-message?action=turnOff > /dev/null
