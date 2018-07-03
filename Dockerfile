@@ -1,4 +1,4 @@
-FROM rhscl/s2i-base-rhel7:1
+FROM openshift/base-centos7
 
 # This image provides an Apache+PHP environment for running PHP
 # applications.

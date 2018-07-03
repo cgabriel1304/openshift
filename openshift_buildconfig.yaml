@@ -1,11 +1,9 @@
----
 # you need to create the ImageStream as the BuildConfig doesn't do it automatically
 apiVersion: v1
 kind: ImageStream
 metadata:
     name: php-custom
-
----
+    
 apiVersion: v1
 kind: BuildConfig
 metadata:
