@@ -63,6 +63,8 @@ ENV PHP_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/php/ \
 RUN yum install -y cronie
 
 RUN chmod 777 -R /etc/cron.d
+RUN touch /var/log/cron.log
+RUN chmod 777 -R /var/log
 
 # Copy the S2I scripts from the specific language image to $STI_SCRIPTS_PATH
 COPY ./s2i/bin/ $STI_SCRIPTS_PATH
