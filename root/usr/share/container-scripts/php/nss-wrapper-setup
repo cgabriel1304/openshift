@@ -1,0 +1,50 @@
+# This file is supposed to be "sourced" from .sti/bin/run
+# If you want to have cron jobs from within your container, just add this to
+# .sti/bin/run inside your STI-ready repository
+#
+#   source /usr/bin/nss-wrapper-setup
+#   source ${STI_SCRIPTS_PATH}/run
+#
+
+echo "Activating NSS wrapper"
+
+export_uid_wrapper=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -u) export_uid_wrapper=1 ;;
+    esac
+    shift
+done
+
+export USER_ID=$(id -u)
+export GROUP_ID=$(id -g)
+
+if ! id user &>/dev/null; then
+    {
+    cat /etc/passwd
+    echo "user:x:${USER_ID}:${GROUP_ID}:Openshift User:${HOME}:/sbin/nologin"
+    } > /tmp/passwd
+fi
+
+export LD_PRELOAD=libnss_wrapper.so
+export NSS_WRAPPER_PASSWD=/tmp/passwd
+export NSS_WRAPPER_GROUP=/etc/group
+
+# Setup anything that needs nss_wrapper here
+
+if [ $export_uid_wrapper != 0 ]; then
+    echo "Activating UID wrapper"
+    export LD_PRELOAD=libuid_wrapper.so:$LD_PRELOAD UID_WRAPPER=1 UID_WRAPPER_ROOT=1
+fi
+
+function crond-start ()
+{
+    echo "Starting crond"
+    # we need uid_wrapper so crond believes he is root, poor guy
+    LD_PRELOAD=libuid_wrapper.so:$LD_PRELOAD \
+    UID_WRAPPER=1 \
+    UID_WRAPPER_ROOT=1 \
+        crond -m off -p -s ${CROND_DEBUG:+-x ext,sch,proc,pars,load,misc,bit} ${1}
+}
+
+#crond-start
