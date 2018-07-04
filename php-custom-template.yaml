@@ -29,6 +29,12 @@ objects:
       port: 443
       protocol: TCP
       targetPort: 5000
+    source:
+    git:
+      uri: "https://gitlab.forge.orange-labs.fr/sspo/dolphin.git"
+    sourceSecret:
+      name: "default-gitlab-user"
+      
 
 
 - apiVersion: v1
@@ -46,7 +52,7 @@ objects:
   metadata:
     annotations:
       openshift.io/display-name: passwordpusher
-    name: php-custom
+    name: passwordpusher
 
 - apiVersion: v1
   kind: DeploymentConfig
@@ -99,3 +105,350 @@ objects:
               cpu: 500m
               memory: 2Gi
         restartPolicy: Always
+
+----------------------------------------------------------
+
+apiVersion: v1
+kind: Template
+labels:
+  app: dolphin
+message: |-
+  Dolphin application named ${NAME} is being created with a database ${DATABASE_SERVICE_NAME}.
+  Datatbase information:
+
+         Username: ${POSTGRESQL_USER}
+         Password: ${POSTGRESQL_PASSWORD}
+    Database Name: ${POSTGRESQL_DATABASE}
+   Connection URL: postgresql://${DATABASE_SERVICE_NAME}:5432/
+   
+metadata:
+  annotations:
+    description: |-
+      Dolphin application with Postgresql database
+    openshift.io/display-name: Dolphin (Persistent)
+    tags: dolphin,postgresql
+    template.openshift.io/documentation-url: any doc
+    template.openshift.io/long-description: This template provides a Dolphin application with PostgreSQL database created.
+  name: dolphin-persistent
+objects:
+
+################################
+##  PostgreSQL configuration  ##
+################################
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    annotations:
+      template.openshift.io/expose-database_name: '{.data[''database-name'']}'
+      template.openshift.io/expose-password: '{.data[''database-password'']}'
+      template.openshift.io/expose-username: '{.data[''database-user'']}'
+    name: ${DATABASE_SERVICE_NAME}
+  stringData:
+    database-name: ${POSTGRESQL_DATABASE}
+    database-password: ${POSTGRESQL_PASSWORD}
+    database-user: ${POSTGRESQL_USER}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      template.openshift.io/expose-uri: postgres://{.spec.clusterIP}:{.spec.ports[?(.name=="postgresql")].port}
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    ports:
+    - name: postgresql
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+    selector:
+      name: ${DATABASE_SERVICE_NAME}
+    sessionAffinity: None
+    type: ClusterIP
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${VOLUME_CAPACITY}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: "true"
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${DATABASE_SERVICE_NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          name: ${DATABASE_SERVICE_NAME}
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                key: database-user
+                name: ${DATABASE_SERVICE_NAME}
+          - name: POSTGRESQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: database-password
+                name: ${DATABASE_SERVICE_NAME}
+          - name: POSTGRESQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                key: database-name
+                name: ${DATABASE_SERVICE_NAME}
+          image: ' '
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            initialDelaySeconds: 30
+            tcpSocket:
+              port: 5432
+            timeoutSeconds: 1
+          name: postgresql
+          ports:
+          - containerPort: 5432
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -i
+              - -c
+              - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c
+                'SELECT 1'
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: ${MEMORY_LIMIT}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /var/lib/pgsql/data
+            name: ${DATABASE_SERVICE_NAME}-data
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        volumes:
+        - name: ${DATABASE_SERVICE_NAME}-data
+          persistentVolumeClaim:
+            claimName: ${DATABASE_SERVICE_NAME}
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - postgresql
+        from:
+          kind: ImageStreamTag
+          name: postgresql:9.5
+          namespace: openshift
+      type: ImageChange
+    - type: ConfigChange
+  
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+    name: ${NAME}
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      targetPort: 8080
+    selector:
+      name: ${NAME}
+
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      template.openshift.io/expose-uri: http://{.spec.host}{.spec.path}
+    name: ${NAME}
+  spec:
+    host: 
+    to:
+      kind: Service
+      name: ${NAME}
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: dolphin-configmap
+  data:
+    KERMIT_APP_ROUTE: dolphin-cyrille
+    KERMIT_APP_ENV: dev
+    KERMIT_PGSQL_APP_HOST: ${DATABASE_SERVICE_NAME}
+    KERMIT_PGSQL_APP_DATABASE: ${POSTGRESQL_DATABASE}
+    KERMIT_PGSQL_APP_USER: ${POSTGRESQL_USER}
+    KERMIT_PGSQL_APP_PASSWORD: ${POSTGRESQL_PASSWORD}
+    MAIL_SMTP_RELAY_HOST: proxy-smtp-gin.internal.fr
+    MAIL_SMTP_RELAY_PORT: "25"      
+      
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: ${NAME}
+    labels:
+      app: ${NAME}
+    annotations:
+      description: "Resulting Docker Image after the build of my application frontend."
+
+- apiVersion: "v1"
+  kind: "BuildConfig"
+  metadata:
+    name: ${NAME}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}:latest
+    resources:
+      limits:
+        memory: 2000Mi
+        cpu: 2000m
+    source:
+      git:
+        uri: https://gitlab.forge.orange-labs.fr/sspo/dolphin.git
+        ref: "${BRANCH}"
+      sourceSecret:
+        name: default-gitlab-user
+      type: Git
+    strategy:
+      sourceStrategy:
+        env:
+          - name: KERMIT_PGSQL_APP_HOST
+            value: ${DATABASE_SERVICE_NAME}
+          - name: KERMIT_PGSQL_APP_DATABASE
+            value: ${POSTGRESQL_DATABASE}
+          - name: KERMIT_PGSQL_APP_USER
+            value: ${POSTGRESQL_USER}
+          - name: KERMIT_PGSQL_APP_PASSWORD
+            value: ${POSTGRESQL_PASSWORD}
+        from:
+          from:
+            kind: ImageStreamTag
+            name: php-custom:7.0
+        incremental: false
+      type: Source
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - type: ConfigChange
+    - imageChange:
+      type: ImageChange
+ 
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: ${NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${NAME}
+    strategy:
+      type: Rolling
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+        pre:
+          failurePolicy: Abort
+          execNewPod:
+            containerName: dolphin
+            command: 
+              - /bin/sh
+              - -c
+              - |
+                php ./app/console doctrine:migrations:migrate --no-interaction --env=dev
+    template:
+      metadata:
+        labels:
+          name: ${NAME}
+        name: ${NAME}
+      spec:
+        containers:
+        - env:
+          envFrom:
+            - configMapRef:
+                name: dolphin-configmap
+          image: ' '
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            timeoutSeconds: 3
+          name: dolphin
+          ports:
+          - containerPort: 8080
+          resources:
+            limits:
+              memory: ${MEMORY_LIMIT}
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - dolphin
+        from:
+          kind: ImageStreamTag
+          name: ${NAME}:latest
+      type: ImageChange
+    - type: ConfigChange
+## Template Parameters
+parameters:
+- description: Maximum amount of memory the container can use.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: The name of the Cachet application
+  displayName: Cachet Application Name
+  name: NAME
+  required: true
+  value: dolphin
+- description: The name of the OpenShift Service exposed for the database.
+  displayName: Database Service Name
+  name: DATABASE_SERVICE_NAME
+  required: true
+  value: dolphin-db
+- description: Username for PostgreSQL user that will be used for accessing the database.
+  displayName: PostgreSQL Connection Username
+  from: user[A-Z0-9]{3}
+  generate: expression
+  name: POSTGRESQL_USER
+  required: true
+- description: Password for the PostgreSQL connection user.
+  displayName: PostgreSQL Connection Password
+  from: '[a-zA-Z0-9]{16}'
+  generate: expression
+  name: POSTGRESQL_PASSWORD
+  required: true
+- description: Name of the PostgreSQL database accessed.
+  displayName: PostgreSQL Database Name
+  name: POSTGRESQL_DATABASE
+  required: true
+  value: sampledb
+- description: Volume space available for data, e.g. 512Mi, 2Gi.
+  displayName: Volume Capacity
+  name: VOLUME_CAPACITY
+  required: true
+  value: 1Gi
+- name: BRANCH
+  description: Application branch name
+  required: true
+  value: develop
+  
+  
+  
+  
+  
