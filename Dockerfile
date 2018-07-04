@@ -62,9 +62,12 @@ ENV PHP_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/php/ \
 
 RUN yum install -y cronie
 
-RUN chmod 777 /var/spool/cron/ /var/run/ && \
-    chmod u+s /usr/bin/crontab /lib64/libnss_wrapper.so* /lib64/libuid_wrapper.so* && \
-    sed -i -s 's/^\(account\s\+include\s\+password-auth\)$/#\1/' /etc/pam.d/crond
+RUN chmod 777 /var/spool/cron/ 
+RUN chmod 777 /var/run/ 
+RUN chmod u+s /usr/bin/crontab 
+RUN chmod 777 /lib64/libnss_wrapper.so* 
+RUN chmod 777 /lib64/libuid_wrapper.so*
+RUN sed -i -s 's/^\(account\s\+include\s\+password-auth\)$/#\1/' /etc/pam.d/crond
 
 RUN chmod 777 -R /etc/cron.d
 RUN touch /var/log/cron.log
