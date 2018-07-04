@@ -1,0 +1,19 @@
+apiVersion: batch/v2alpha1
+kind: CronJob
+metadata:
+  name: dolphin-test-cron
+spec:
+  schedule: "*/1 * * * *"  
+  jobTemplate:             
+    spec:
+      template:
+        metadata:
+          labels:          
+            parent: "cronjobpi"
+        spec:
+          containers:
+          - name: dolphin-test-cron
+            image: 172.30.220.103:5000/dolphin-dev/dolphin
+            imagePullPolicy: Always
+            command: [ "echo",  "Hello World"]
+          restartPolicy: Never 
