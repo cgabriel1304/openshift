@@ -62,11 +62,12 @@ ENV PHP_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/php/ \
 
 RUN yum install -y cronie
 
-RUN echo "* * * * * root echo "Hello world" >> /var/log/cron.log 2>&1" > crontab
-RUN echo "# An empty line is required at the end of this file for a valid cron file." >> crontab
-ADD crontab /etc/cron.d/hello-cron
-RUN chmod 0644 /etc/cron.d/hello-cron
-RUN touch /var/log/cron.log
+RUN echo "* * * * * root echo "Hello world" >> /var/log/cron.log 2>&1" > crontab && \
+    echo "# An empty line is required at the end of this file for a valid cron file." >> crontab && \
+    mv crontab /etc/cron.d/hello-cron && \
+    chmod 0644 /etc/cron.d/hello-cron && \
+    touch /var/log/cron.log
+
 CMD cron && tail -f /var/log/cron.log
 
 # Copy the S2I scripts from the specific language image to $STI_SCRIPTS_PATH
